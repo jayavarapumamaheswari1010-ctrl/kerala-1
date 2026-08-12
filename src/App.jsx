@@ -37,7 +37,8 @@ export default function App() {
   const [isCaseFileOpen, setIsCaseFileOpen] = useState(false);
 
   const isLoginPage = location.pathname === '/login';
-  const isKryptPage = location.pathname === '/krypt' || location.pathname === '/krypt/analysis' || location.pathname === '/dashboard' || location.pathname === '/';
+  const isKryptPage = location.pathname === '/krypt' || location.pathname === '/krypt/analysis';
+  const isSentinelPage = !isLoginPage && !isKryptPage;
 
   const handleOpenExport = (evidenceItem) => {
     setSelectedExportItem(evidenceItem || null);
@@ -68,15 +69,15 @@ export default function App() {
     <KryptProvider>
       {showSplash && <SentinelSplashScreen onComplete={() => setShowSplash(false)} />}
       <div className="min-h-screen bg-[#0B0C10] text-white flex flex-col selection:bg-[#FF6B35] selection:text-[#0B0C10]">
-        {/* If on Sentinel pages (not login and not full-screen krypt), render top Navbar */}
-        {location.pathname !== '/login' && location.pathname !== '/dashboard' && location.pathname !== '/' && !isKryptPage && (
+        {/* Navbar on all Sentinel pages */}
+        {isSentinelPage && (
           <Navbar onOpenDebrief={() => setIsDebriefOpen(true)} />
         )}
 
         {/* Main Container */}
         <div className="flex-1 flex overflow-hidden">
-          {/* If on Sentinel pages, render Left Sidebar */}
-          {location.pathname !== '/login' && location.pathname !== '/dashboard' && location.pathname !== '/' && !isKryptPage && (
+          {/* Sidebar on all Sentinel pages */}
+          {isSentinelPage && (
             <Sidebar onNewInvestigation={() => setIsNewInvestigationOpen(true)} />
           )}
 
