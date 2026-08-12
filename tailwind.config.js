@@ -13,10 +13,10 @@ export default {
         accent: {
           DEFAULT: "#FF6B35",
           hover: "#E85A24",
-          dark: "#CC4918"
         },
         success: "#00C853",
         danger: "#FF1744",
+        warning: "#FFB300",
         muted: "#8A8B9A",
         border: "#1E1F2A",
       },
@@ -24,12 +24,11 @@ export default {
         sans: ['Inter', 'system-ui', 'sans-serif'],
         mono: ['"JetBrains Mono"', 'monospace'],
       },
-      boxShadow: {
-        'accent-subtle': '0 0 20px rgba(255, 107, 53, 0.12)',
-        'accent-glow': '0 0 24px rgba(255, 107, 53, 0.22)',
-      },
       borderRadius: {
-        'custom': '12px',
+        DEFAULT: '8px',
+      },
+      fontSize: {
+        label: ['11px', { lineHeight: '1', letterSpacing: '0.08em' }],
       }
     },
   },
