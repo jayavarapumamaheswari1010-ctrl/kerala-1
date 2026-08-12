@@ -1,17 +1,26 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { 
-  Shield, 
-  X, 
-  FileText, 
-  Video, 
-  Volume2, 
-  VolumeX, 
-  Clock, 
-  Bell, 
+import {
+  Shield,
+  X,
+  FileText,
+  Video,
+  Volume2,
+  VolumeX,
+  Clock,
+  Bell,
   Download,
   Eye,
-  EyeOff
+  EyeOff,
+  AlertTriangle,
+  CheckCircle,
+  FolderOpen,
+  TrendingUp,
+  Users,
+  Camera,
+  Activity,
+  ArrowRight,
+  Zap,
 } from 'lucide-react';
 import { mockDetections, amberShieldData } from '../data/mockDetections';
 import VideoUploader from '../components/VideoUploader';
@@ -27,6 +36,34 @@ const mockData = {
   ]
 };
 
+// ── Mock Case Statistics ──────────────────────────────────────────────────────
+const caseStats = {
+  todayTotal: 7,
+  highRisk: 3,
+  mediumPriority: 2,
+  resolved: 2,
+  openCases: 14,
+  pendingReview: 5,
+};
+
+const recentCases = [
+  { id: "KP-2026-0812", title: "Online Grooming — Minor Victim A", status: "HIGH RISK", priority: "CRITICAL", officer: "SI Kumar", time: "09:15 AM", statusColor: "#FF1744" },
+  { id: "KP-2026-0811", title: "Cyberstalking — WhatsApp Harassment", status: "MEDIUM", priority: "MEDIUM", officer: "ASI Rajan", time: "08:40 AM", statusColor: "#FFB300" },
+  { id: "KP-2026-0810", title: "Image Blackmail — Telegram", status: "HIGH RISK", priority: "HIGH", officer: "SI Priya", time: "07:55 AM", statusColor: "#FF1744" },
+  { id: "KP-2026-0809", title: "Financial Fraud — UPI Scam", status: "MEDIUM", priority: "MEDIUM", officer: "HC Suresh", time: "07:20 AM", statusColor: "#FFB300" },
+  { id: "KP-2026-0808", title: "Phishing Attack — Banking", status: "RESOLVED", priority: "LOW", officer: "PC Anand", time: "06:45 AM", statusColor: "#00C853" },
+  { id: "KP-2026-0807", title: "Identity Theft — Social Media", status: "HIGH RISK", priority: "HIGH", officer: "SI Kumar", time: "06:10 AM", statusColor: "#FF1744" },
+  { id: "KP-2026-0806", title: "Child Exploitation — Dark Web", status: "RESOLVED", priority: "CRITICAL", officer: "DSP Menon", time: "05:30 AM", statusColor: "#00C853" },
+];
+
+const agentStatuses = [
+  { name: "Evidence Custodian", status: "active", task: "Indexing 142 items" },
+  { name: "Pattern Hunter", status: "processing", task: "Cross-correlating" },
+  { name: "Digital Tracker", status: "active", task: "Gait analysis live" },
+  { name: "Threat Scout", status: "idle", task: "Standby" },
+  { name: "Report Writer", status: "idle", task: "Standby" },
+];
+
 export default function DashboardPage() {
   const navigate = useNavigate();
 
@@ -34,22 +71,24 @@ export default function DashboardPage() {
   const [isPlaying, setIsPlaying] = useState(false);
   const [currentTime, setCurrentTime] = useState(0);
   const [playbackSpeed, setPlaybackSpeed] = useState(1);
-  const totalDuration = 30; // 30 seconds
+  const totalDuration = 30;
   const [privacyMode, setPrivacyMode] = useState(false);
-  
+
   // Modals & Overlays
   const [isAmberShieldActive, setIsAmberShieldActive] = useState(false);
   const [amberShieldCountdown, setAmberShieldCountdown] = useState(272);
   const [familyAlertSent, setFamilyAlertSent] = useState(false);
   const [isReportOpen, setIsReportOpen] = useState(false);
   const [isGeneratingPdf, setIsGeneratingPdf] = useState(false);
-  
-  // Interactive logs / Speech alert references
+
+  // Interactive logs / Speech
   const [triggeredAlerts, setTriggeredAlerts] = useState(new Set());
   const [toasts, setToasts] = useState([]);
   const [voiceEnabled, setVoiceEnabled] = useState(true);
 
-  // Audio helper using Web Speech API
+  // Active tab in right panel
+  const [rightTab, setRightTab] = useState('cases'); // 'cases' | 'agents'
+
   const speakText = (text) => {
     if (voiceEnabled && 'speechSynthesis' in window) {
       window.speechSynthesis.cancel();
@@ -60,16 +99,12 @@ export default function DashboardPage() {
     }
   };
 
-  // Helper to format seconds to MM:SS
   const formatTime = (totalSeconds) => {
     const minutes = Math.floor(totalSeconds / 60);
     const seconds = totalSeconds % 60;
-    return [minutes, seconds]
-      .map(v => v.toString().padStart(2, '0'))
-      .join(':');
+    return [minutes, seconds].map(v => v.toString().padStart(2, '0')).join(':');
   };
 
-  // Add toast alert
   const triggerToast = (text, type) => {
     const id = Date.now() + Math.random();
     setToasts(prev => [...prev, { id, text, type }]);
@@ -78,16 +113,12 @@ export default function DashboardPage() {
     }, 4000);
   };
 
-  // Timeline playback ticking
   useEffect(() => {
     let interval = null;
     if (isPlaying) {
       interval = setInterval(() => {
         setCurrentTime(prev => {
-          if (prev >= totalDuration) {
-            setIsPlaying(false);
-            return 0;
-          }
+          if (prev >= totalDuration) { setIsPlaying(false); return 0; }
           return Math.min(prev + playbackSpeed, totalDuration);
         });
       }, 1000);
@@ -95,20 +126,16 @@ export default function DashboardPage() {
     return () => clearInterval(interval);
   }, [isPlaying, playbackSpeed]);
 
-  // Check and trigger detections based on current time
   useEffect(() => {
     mockDetections.forEach(det => {
       if (currentTime >= det.seconds && !triggeredAlerts.has(det.id)) {
         setTriggeredAlerts(prev => new Set([...prev, det.id]));
-
         if (det.type === 'VICTIM') {
           speakText(`Victim detected at camera ${det.camera.replace('CAM-', '')}, timestamp ${det.time}.`);
           triggerToast(`🟢 VICTIM DETECTED — ${det.time} — Confidence ${det.confidence}%`, 'victim');
         } else if (det.type === 'SUSPECT') {
           speakText("Suspect detected. Caution advised.");
           triggerToast(`🔴 SUSPECT DETECTED — ${det.time} — HIGH PRIORITY`, 'suspect');
-          
-          // Auto-trigger Amber Shield at suspect detection timestamp (18 seconds)
           if (det.id === 3) {
             setTimeout(() => {
               setIsAmberShieldActive(true);
@@ -119,60 +146,16 @@ export default function DashboardPage() {
       }
     });
 
-    // Reset alert triggers if playhead is scrubbed back
     const newTriggered = new Set();
     mockDetections.forEach(det => {
-      if (currentTime >= det.seconds) {
-        newTriggered.add(det.id);
-      }
+      if (currentTime >= det.seconds) newTriggered.add(det.id);
     });
-    if (newTriggered.size < triggeredAlerts.size) {
-      setTriggeredAlerts(newTriggered);
-    }
+    if (newTriggered.size < triggeredAlerts.size) setTriggeredAlerts(newTriggered);
   }, [currentTime]);
 
-  const activeBox = mockDetections.find(det => 
+  const activeBox = mockDetections.find(det =>
     currentTime >= det.seconds && currentTime <= det.seconds + 2
   );
-
-  // Map progress calculation (0% to 100% along the path)
-  const getSuspectMapPosition = () => {
-    const pts = [
-      { camera: "CAM-01", x: 20, y: 55 },
-      { camera: "CAM-03", x: 45, y: 45 },
-      { camera: "CAM-12", x: 85, y: 50 }
-    ];
-    if (currentTime < 5) {
-      return { x: pts[0].x, y: pts[0].y };
-    }
-    if (currentTime >= 18) {
-      return { x: pts[2].x, y: pts[2].y };
-    }
-    
-    // Segment 1: C1 to C3
-    if (currentTime >= 5 && currentTime < 12) {
-      const ratio = (currentTime - 5) / (12 - 5);
-      return {
-        x: pts[0].x + ratio * (pts[1].x - pts[0].x),
-        y: pts[0].y + ratio * (pts[1].y - pts[0].y)
-      };
-    }
-    // Segment 2: C3 to C12
-    if (currentTime >= 12 && currentTime < 18) {
-      const ratio = (currentTime - 12) / (18 - 12);
-      return {
-        x: pts[1].x + ratio * (pts[2].x - pts[1].x),
-        y: pts[1].y + ratio * (pts[2].y - pts[1].y)
-      };
-    }
-    return { x: pts[0].x, y: pts[0].y };
-  };
-
-  const suspectPos = getSuspectMapPosition();
-
-  const handleGenerateReport = () => {
-    setIsReportOpen(true);
-  };
 
   const triggerMockPdfDownload = () => {
     setIsGeneratingPdf(true);
@@ -182,10 +165,14 @@ export default function DashboardPage() {
     }, 2000);
   };
 
+  const statusDotColor = (s) =>
+    s === 'active' ? '#00C853' : s === 'processing' ? '#FFB300' : '#8A8B9A';
+
   return (
     <div className="min-h-screen bg-[#0B0C10] text-white flex flex-col font-sans select-none pb-14">
-      {/* 64px Top bar */}
-      <header className="h-[64px] border-b border-[#1E1F2A] bg-[#15161D] px-6 flex items-center justify-between z-40 select-none">
+
+      {/* ── HEADER ─────────────────────────────────────────────────────────── */}
+      <header className="h-[64px] border-b border-[#1E1F2A] bg-[#15161D] px-6 flex items-center justify-between z-40 select-none shrink-0">
         <div className="flex items-center space-x-3">
           <div className="w-8 h-8 rounded-[8px] bg-[#1E1F2A] border border-[#FF6B35] flex items-center justify-center overflow-hidden">
             <img src="/sentinel_logo.png" alt="FORENSIC AI Logo" className="w-full h-full object-cover animate-eye-blink" />
@@ -193,17 +180,16 @@ export default function DashboardPage() {
           <span className="text-white font-extrabold text-[18px] tracking-tight font-sans">FORENSIC AI</span>
         </div>
 
-        {/* Navigation Tabs */}
         <nav className="hidden md:flex space-x-6 h-full items-center text-xs font-semibold tracking-wider uppercase">
           <span className="text-white border-b-2 border-[#FF6B35] h-full flex items-center px-1 cursor-default">Dashboard</span>
-          <span className="text-[#8A8B9A] hover:text-white transition-colors cursor-pointer" onClick={() => triggerToast("Evidence Vault module requires master access", "suspect")}>Evidence</span>
-          <span className="text-[#8A8B9A] hover:text-white transition-colors cursor-pointer" onClick={() => triggerToast("Biometric Analyzer module requires master access", "suspect")}>Analysis</span>
-          <span className="text-[#8A8B9A] hover:text-white transition-colors cursor-pointer" onClick={() => setIsReportOpen(true)}>Reports</span>
+          <span className="text-[#8A8B9A] hover:text-white transition-colors cursor-pointer" onClick={() => navigate('/krypt')}>CCTV Multi-Cam</span>
+          <span className="text-[#8A8B9A] hover:text-white transition-colors cursor-pointer" onClick={() => navigate('/evidence')}>Evidence</span>
+          <span className="text-[#8A8B9A] hover:text-white transition-colors cursor-pointer" onClick={() => navigate('/analysis')}>Analysis</span>
+          <span className="text-[#8A8B9A] hover:text-white transition-colors cursor-pointer" onClick={() => navigate('/reports')}>Reports</span>
         </nav>
 
-        {/* Right side status items */}
         <div className="flex items-center space-x-4">
-          <div 
+          <div
             onClick={() => {
               setIsAmberShieldActive(true);
               speakText("Amber Shield activated. Suspect approaching victim location. Interception required.");
@@ -216,8 +202,7 @@ export default function DashboardPage() {
             </span>
           </div>
 
-          {/* Voice Speech toggle */}
-          <button 
+          <button
             onClick={() => {
               setVoiceEnabled(!voiceEnabled);
               triggerToast(voiceEnabled ? "Voice Speech Alerts Muted" : "Voice Speech Alerts Active", "victim");
@@ -227,8 +212,8 @@ export default function DashboardPage() {
             {voiceEnabled ? <Volume2 className="w-4 h-4 text-[#FF6B35]" /> : <VolumeX className="w-4 h-4 text-[#8A8B9A]" />}
           </button>
 
-          <button 
-            onClick={handleGenerateReport}
+          <button
+            onClick={() => setIsReportOpen(true)}
             className="bg-[#FF6B35] hover:bg-[#E85A24] text-[#0B0C10] text-[11px] font-extrabold uppercase tracking-wider py-1.5 px-3 rounded-[8px] transition-colors"
           >
             GENERATE REPORT
@@ -245,44 +230,40 @@ export default function DashboardPage() {
         </div>
       </header>
 
-      {/* Main Grid Content */}
+      {/* ── MAIN GRID ─────────────────────────────────────────────────────── */}
       <div className="flex-1 grid grid-cols-1 lg:grid-cols-12 gap-5 p-5 max-w-[1700px] mx-auto w-full items-stretch">
-        
-        {/* LEFT COLUMN: TARGET PROFILES & DETECTIONS LOG */}
-        <div className="lg:col-span-3 space-y-4 flex flex-col justify-start">
-          {/* Target Profiles Section */}
-          <div className="bg-[#15161D] border border-[#1E1F2A] rounded-[8px] p-4 space-y-3 shadow-md">
+
+        {/* LEFT COLUMN: TARGET PROFILES & DETECTION LOG */}
+        <div className="lg:col-span-3 space-y-4 flex flex-col">
+
+          {/* Target Profiles */}
+          <div className="bg-[#15161D] border border-[#1E1F2A] rounded-[8px] p-4 space-y-3">
             <span className="text-[10px] font-mono uppercase text-[#8A8B9A] tracking-widest block font-extrabold">TARGET PROFILES</span>
-            
-            {/* Victim Profile Card */}
-            <div className="flex items-center space-x-3 p-2 bg-[#1E1F2A] rounded-[8px] border border-[#1E1F2A]">
+
+            <div className="flex items-center space-x-3 p-2 bg-[#1E1F2A] rounded-[8px]">
               <img src={mockData.victim.photo} alt="Victim" className="w-10 h-10 rounded-[6px] object-cover bg-[#0B0C10]" />
               <div className="flex-1 min-w-0">
                 <span className="text-white text-xs font-bold block truncate">{mockData.victim.name}</span>
                 <span className="text-[#8A8B9A] text-[10px] block">Age: {mockData.victim.age} • Active</span>
               </div>
-              <span className="w-2 h-2 rounded-full bg-[#00C853] flex-shrink-0 animate-pulse" title="Profile Active" />
+              <span className="w-2 h-2 rounded-full bg-[#00C853] flex-shrink-0 animate-pulse" />
             </div>
 
-            {/* Suspect Profile Card */}
-            <div className="flex items-center space-x-3 p-2 bg-[#1E1F2A] rounded-[8px] border border-[#1E1F2A] relative">
+            <div className="flex items-center space-x-3 p-2 bg-[#1E1F2A] rounded-[8px]">
               <img src={mockData.suspect.photo} alt="Suspect" className="w-10 h-10 rounded-[6px] object-cover bg-[#0B0C10]" />
               <div className="flex-1 min-w-0">
                 <span className="text-white text-xs font-bold block truncate">{mockData.suspect.name}</span>
                 <span className="text-[#FF6B35] text-[10px] font-mono block">Alias: {mockData.suspect.alias}</span>
               </div>
-              <span className="w-2 h-2 rounded-full bg-[#FF1744] flex-shrink-0 animate-pulse" title="Wanted Status" />
+              <span className="w-2 h-2 rounded-full bg-[#FF1744] flex-shrink-0 animate-pulse" />
             </div>
           </div>
 
-          {/* Detection Log Card */}
-          <div className="bg-[#15161D] border border-[#1E1F2A] rounded-[8px] p-4 flex-1 flex flex-col justify-between shadow-md min-h-[300px]">
+          {/* Detection Log */}
+          <div className="bg-[#15161D] border border-[#1E1F2A] rounded-[8px] p-4 flex-1 flex flex-col min-h-[280px]">
             <DetectionLog
               logs={mockDetections}
-              onJump={(sec) => {
-                setCurrentTime(sec);
-                setIsPlaying(false);
-              }}
+              onJump={(sec) => { setCurrentTime(sec); setIsPlaying(false); }}
               currentTime={currentTime}
             />
             <div className="pt-2 border-t border-[#1E1F2A] text-[9px] font-mono text-[#8A8B9A] flex justify-between mt-2">
@@ -292,7 +273,7 @@ export default function DashboardPage() {
           </div>
         </div>
 
-        {/* CENTER COLUMN: VIDEO CANVAS VIEWPORT & TIMELINE CONTROLS */}
+        {/* CENTER COLUMN: VIDEO PLAYER */}
         <VideoUploader
           isPlaying={isPlaying}
           setIsPlaying={setIsPlaying}
@@ -310,115 +291,170 @@ export default function DashboardPage() {
           triggerToast={triggerToast}
         />
 
-        {/* RIGHT COLUMN: CROSS-CAMERA TRAJECTORY MAP & PRIVACY TOGGLE (320px Equivalent) */}
-        <div className="lg:col-span-3 space-y-4 flex flex-col justify-start">
-          
-          {/* Tracking Map Card */}
-          <div className="bg-[#15161D] border border-[#1E1F2A] rounded-[8px] p-4 space-y-3 shadow-md flex-1 flex flex-col justify-between min-h-[350px]">
-            <div>
-              <span className="text-[10px] font-mono uppercase text-[#8A8B9A] tracking-widest block font-extrabold mb-2">CROSS-CAMERA TRACKING</span>
-              
-              {/* Map Canvas viewport */}
-              <div className="relative w-full h-[220px] bg-[#0B0C10] border border-[#1E1F2A] rounded-[8px] overflow-hidden">
-                <div className="absolute inset-0 opacity-15 bg-[radial-gradient(#1E1F2A_1px,transparent_1px)] bg-[size:16px_16px] pointer-events-none" />
-                
-                {/* SVG vector path lines connecting nodes */}
-                <svg className="absolute inset-0 w-full h-full pointer-events-none">
-                  {/* Outer trajectory outline */}
-                  <polyline 
-                    points="45,121 101,99 191,110" 
-                    fill="none" 
-                    stroke="#FF6B35" 
-                    strokeWidth="2" 
-                    strokeDasharray="4,4"
-                  />
-                  {/* Complete solid link */}
-                  <polyline 
-                    points="45,121 101,99 191,110" 
-                    fill="none" 
-                    stroke="#FF6B35" 
-                    strokeWidth="1.5" 
-                    opacity="0.3"
-                  />
-                </svg>
+        {/* RIGHT COLUMN: CASE DASHBOARD STATS */}
+        <div className="lg:col-span-3 space-y-4 flex flex-col">
 
-                {/* Path Camera nodes */}
-                {[
-                  { camera: "CAM-01", time: "00:05", x: 20, y: 55 },
-                  { camera: "CAM-03", time: "00:12", x: 45, y: 45 },
-                  { camera: "CAM-12", time: "00:18", x: 85, y: 50 }
-                ].map((node) => (
-                  <div 
-                    key={node.camera}
-                    style={{ left: `${node.x}%`, top: `${node.y}%` }}
-                    className="absolute -translate-x-1/2 -translate-y-1/2 z-10 group"
+          {/* ── Stat Cards ── */}
+          <div className="grid grid-cols-2 gap-3">
+            {/* Cases Today */}
+            <div className="bg-[#15161D] border border-[#1E1F2A] rounded-[8px] p-4 col-span-2 flex items-center justify-between">
+              <div>
+                <p className="text-[10px] font-mono uppercase text-[#8A8B9A] tracking-widest font-extrabold mb-1">CASES TODAY</p>
+                <p className="text-white font-extrabold text-3xl font-mono">{caseStats.todayTotal}</p>
+                <p className="text-[#8A8B9A] text-[11px] mt-1">Aug 12, 2026</p>
+              </div>
+              <div className="w-12 h-12 rounded-[8px] bg-[#FF6B35]/10 border border-[#FF6B35]/30 flex items-center justify-center">
+                <FolderOpen className="w-6 h-6 text-[#FF6B35]" />
+              </div>
+            </div>
+
+            {/* High Risk */}
+            <div className="bg-[#15161D] border border-[#FF1744]/30 rounded-[8px] p-3 flex flex-col gap-1">
+              <div className="flex items-center justify-between mb-1">
+                <p className="text-[10px] font-mono uppercase text-[#8A8B9A] tracking-widest font-extrabold">HIGH RISK</p>
+                <AlertTriangle className="w-3.5 h-3.5 text-[#FF1744]" />
+              </div>
+              <p className="text-[#FF1744] font-extrabold text-2xl font-mono">{caseStats.highRisk}</p>
+              <p className="text-[#8A8B9A] text-[10px]">Immediate action</p>
+            </div>
+
+            {/* Medium Priority */}
+            <div className="bg-[#15161D] border border-[#FFB300]/30 rounded-[8px] p-3 flex flex-col gap-1">
+              <div className="flex items-center justify-between mb-1">
+                <p className="text-[10px] font-mono uppercase text-[#8A8B9A] tracking-widest font-extrabold">MEDIUM</p>
+                <Activity className="w-3.5 h-3.5 text-[#FFB300]" />
+              </div>
+              <p className="text-[#FFB300] font-extrabold text-2xl font-mono">{caseStats.mediumPriority}</p>
+              <p className="text-[#8A8B9A] text-[10px]">Under review</p>
+            </div>
+
+            {/* Resolved */}
+            <div className="bg-[#15161D] border border-[#00C853]/20 rounded-[8px] p-3 flex flex-col gap-1">
+              <div className="flex items-center justify-between mb-1">
+                <p className="text-[10px] font-mono uppercase text-[#8A8B9A] tracking-widest font-extrabold">RESOLVED</p>
+                <CheckCircle className="w-3.5 h-3.5 text-[#00C853]" />
+              </div>
+              <p className="text-[#00C853] font-extrabold text-2xl font-mono">{caseStats.resolved}</p>
+              <p className="text-[#8A8B9A] text-[10px]">Closed today</p>
+            </div>
+
+            {/* Open Cases */}
+            <div className="bg-[#15161D] border border-[#1E1F2A] rounded-[8px] p-3 flex flex-col gap-1">
+              <div className="flex items-center justify-between mb-1">
+                <p className="text-[10px] font-mono uppercase text-[#8A8B9A] tracking-widest font-extrabold">OPEN TOTAL</p>
+                <TrendingUp className="w-3.5 h-3.5 text-[#8A8B9A]" />
+              </div>
+              <p className="text-white font-extrabold text-2xl font-mono">{caseStats.openCases}</p>
+              <p className="text-[#8A8B9A] text-[10px]">All active</p>
+            </div>
+          </div>
+
+          {/* ── Recent Cases Table ── */}
+          <div className="bg-[#15161D] border border-[#1E1F2A] rounded-[8px] p-4 flex-1 flex flex-col min-h-0">
+            {/* Tab row */}
+            <div className="flex items-center justify-between mb-3">
+              <div className="flex gap-1">
+                <button
+                  onClick={() => setRightTab('cases')}
+                  className={`px-3 py-1 rounded-[6px] text-xs font-semibold transition-colors ${
+                    rightTab === 'cases'
+                      ? 'bg-[#FF6B35] text-black'
+                      : 'text-[#8A8B9A] hover:text-white bg-[#1E1F2A]'
+                  }`}
+                >
+                  Recent Cases
+                </button>
+                <button
+                  onClick={() => setRightTab('agents')}
+                  className={`px-3 py-1 rounded-[6px] text-xs font-semibold transition-colors ${
+                    rightTab === 'agents'
+                      ? 'bg-[#FF6B35] text-black'
+                      : 'text-[#8A8B9A] hover:text-white bg-[#1E1F2A]'
+                  }`}
+                >
+                  Agents
+                </button>
+              </div>
+              <span className="text-[10px] font-mono text-[#8A8B9A]">{new Date().toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' })}</span>
+            </div>
+
+            {rightTab === 'cases' ? (
+              <div className="flex-1 overflow-y-auto space-y-2 pr-1" style={{ maxHeight: 340 }}>
+                {recentCases.map((c) => (
+                  <div
+                    key={c.id}
+                    onClick={() => triggerToast(`Opening case ${c.id}...`, 'victim')}
+                    className="flex items-start justify-between p-2.5 bg-[#1E1F2A] rounded-[8px] cursor-pointer hover:bg-[#252637] transition-colors border border-transparent hover:border-[#FF6B35]/20"
                   >
-                    <div className="w-5 h-5 rounded-full bg-[#15161D] border border-[#FF6B35] flex items-center justify-center text-[8px] font-mono text-[#FF6B35] font-extrabold shadow">
-                      C{node.camera.replace('CAM-', '')}
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center gap-1.5 mb-1">
+                        <span
+                          className="w-1.5 h-1.5 rounded-full flex-shrink-0"
+                          style={{ background: c.statusColor }}
+                        />
+                        <span className="text-white text-[11px] font-bold truncate">{c.title}</span>
+                      </div>
+                      <div className="flex items-center gap-2 text-[10px] font-mono text-[#8A8B9A]">
+                        <span>{c.id}</span>
+                        <span>•</span>
+                        <span>{c.officer}</span>
+                        <span>•</span>
+                        <span>{c.time}</span>
+                      </div>
                     </div>
-                    <span className="absolute hidden group-hover:block bg-[#15161D] text-white text-[8px] font-mono rounded px-1.5 py-0.5 border border-[#1E1F2A] -bottom-6 left-1/2 -translate-x-1/2 z-20 whitespace-nowrap shadow-md">
-                      {node.camera} • {node.time}
+                    <span
+                      className="ml-2 flex-shrink-0 px-1.5 py-0.5 rounded text-[9px] font-bold uppercase font-mono"
+                      style={{
+                        color: c.statusColor,
+                        background: c.statusColor + '20',
+                        border: `1px solid ${c.statusColor}40`,
+                      }}
+                    >
+                      {c.priority}
                     </span>
                   </div>
                 ))}
-
-                {/* Victim Proximity point */}
-                <div className="absolute left-[85%] top-[50%] -translate-x-1/2 -translate-y-1/2 z-20">
-                  <span className="w-3.5 h-3.5 rounded-full border-2 border-white bg-[#00C853] block animate-pulse" title="Victim Last Location" />
-                </div>
-
-                {/* Animated Suspect tracker indicator dot */}
-                <div 
-                  style={{ left: `${suspectPos.x}%`, top: `${suspectPos.y}%` }}
-                  className="absolute -translate-x-1/2 -translate-y-1/2 z-30 transition-all duration-300 pointer-events-none"
-                >
-                  <span className="w-3 h-3 rounded-full bg-[#FF1744] border border-white block animate-ping" />
-                  <span className="w-2 h-2 rounded-full bg-[#FF1744] border border-white block absolute top-0.5 left-0.5" />
-                </div>
               </div>
-            </div>
-
-            {/* Telemetry info row */}
-            <div className="p-2.5 bg-[#0B0C10] border border-[#1E1F2A] rounded-[8px] text-[10px] font-mono text-[#8A8B9A] space-y-1 mt-3">
-              <div className="flex justify-between">
-                <span>ESTIMATED DURATION:</span>
-                <span className="text-white font-bold">{formatTime(totalDuration)}</span>
-              </div>
-              <div className="flex justify-between">
-                <span>ACTIVE CAMERA:</span>
-                <span className="text-[#FF6B35] font-bold">
-                  {currentTime < 5 ? "CAM-01" : currentTime < 12 ? "CAM-03 (Active)" : "CAM-12"}
-                </span>
-              </div>
-            </div>
-          </div>
-
-          {/* Camera List */}
-          <div className="bg-[#15161D] border border-[#1E1F2A] rounded-[8px] p-4 space-y-2.5 shadow-md">
-            <span className="text-[10px] font-mono uppercase text-[#8A8B9A] tracking-widest block font-extrabold">CAMERA CHANNELS</span>
-            <div className="grid grid-cols-2 gap-2 text-[10px] font-mono">
-              {['CAM-01', 'CAM-03', 'CAM-12'].map(cam => {
-                const isActive = (cam === 'CAM-03' && currentTime >= 5 && currentTime <= 12) || 
-                                 (cam === 'CAM-12' && currentTime > 12 && currentTime <= 18);
-                return (
-                  <div 
-                    key={cam}
-                    onClick={() => triggerToast(`Connecting to remote live link of ${cam}...`, 'victim')}
-                    className={`p-2 rounded-[6px] border text-center transition-all cursor-pointer ${
-                      isActive 
-                        ? 'border-[#FF6B35] bg-[#FF6B35]/10 text-white font-bold shadow-[0_0_10px_rgba(255,107,53,0.1)]' 
-                        : 'border-[#1E1F2A] bg-[#0B0C10] text-[#8A8B9A] hover:border-[#FF6B35]/30'
-                    }`}
-                  >
-                    {cam} {isActive ? "• ON AIR" : ""}
+            ) : (
+              <div className="flex-1 overflow-y-auto space-y-2 pr-1">
+                {agentStatuses.map((agent) => (
+                  <div key={agent.name} className="flex items-center gap-3 p-2.5 bg-[#1E1F2A] rounded-[8px]">
+                    <span
+                      className="w-2 h-2 rounded-full flex-shrink-0"
+                      style={{ background: statusDotColor(agent.status) }}
+                    />
+                    <div className="flex-1 min-w-0">
+                      <p className="text-white text-xs font-semibold truncate">{agent.name}</p>
+                      <p className="text-[#8A8B9A] text-[10px]">{agent.task}</p>
+                    </div>
+                    <span
+                      className="text-[10px] font-mono uppercase px-1.5 py-0.5 rounded"
+                      style={{
+                        color: statusDotColor(agent.status),
+                        background: statusDotColor(agent.status) + '20',
+                      }}
+                    >
+                      {agent.status}
+                    </span>
                   </div>
-                );
-              })}
-            </div>
+                ))}
+              </div>
+            )}
+
+            {/* View All Cases button */}
+            {rightTab === 'cases' && (
+              <button
+                onClick={() => navigate('/evidence')}
+                className="mt-3 w-full flex items-center justify-center gap-1.5 py-2 border border-[#1E1F2A] hover:border-[#FF6B35]/40 text-[#8A8B9A] hover:text-white text-xs font-semibold rounded-[8px] transition-colors"
+              >
+                View All Cases
+                <ArrowRight className="w-3 h-3" />
+              </button>
+            )}
           </div>
 
-          {/* Privacy Toggle Section */}
-          <div className="bg-[#15161D] border border-[#1E1F2A] rounded-[8px] p-4 flex items-center justify-between shadow-md">
+          {/* ── Privacy Toggle ── */}
+          <div className="bg-[#15161D] border border-[#1E1F2A] rounded-[8px] p-4 flex items-center justify-between">
             <div className="flex items-center space-x-2">
               {privacyMode ? <EyeOff className="w-4 h-4 text-[#00C853]" /> : <Eye className="w-4 h-4 text-[#8A8B9A]" />}
               <div>
@@ -443,15 +479,11 @@ export default function DashboardPage() {
         </div>
       </div>
 
-
-      {/* ========================================================================= */}
-      {/* AUTO-FIR REPORT MODAL                                                     */}
-      {/* ========================================================================= */}
+      {/* ── AUTO-FIR REPORT MODAL ────────────────────────────────────────── */}
       {isReportOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-xs select-none">
           <div className="relative w-full max-w-3xl bg-[#15161D] border border-[#1E1F2A] rounded-[8px] shadow-2xl p-6 overflow-y-auto max-h-[92vh] flex flex-col justify-between font-sans">
             <div>
-              {/* Header */}
               <div className="flex items-center justify-between pb-4 border-b border-[#1E1F2A]">
                 <div className="flex items-center space-x-3.5">
                   <div className="w-10 h-10 rounded-[8px] bg-[#1E1F2A] border border-[#FF6B35] flex items-center justify-center text-xs">
@@ -466,7 +498,7 @@ export default function DashboardPage() {
                     </p>
                   </div>
                 </div>
-                <button 
+                <button
                   onClick={() => setIsReportOpen(false)}
                   className="w-8 h-8 rounded-[8px] bg-[#1E1F2A] text-[#8A8B9A] hover:text-white flex items-center justify-center transition-colors"
                 >
@@ -474,7 +506,6 @@ export default function DashboardPage() {
                 </button>
               </div>
 
-              {/* Document Metadata details */}
               <div className="grid grid-cols-2 gap-4 py-4 border-b border-[#1E1F2A] text-xs font-mono text-[#8A8B9A]">
                 <div>
                   <div>CASE ID Ref: <strong className="text-white">KP-2026-0812</strong></div>
@@ -486,9 +517,8 @@ export default function DashboardPage() {
                 </div>
               </div>
 
-              {/* Table */}
               <div className="py-4">
-                <span className="text-[10px] font-mono uppercase text-[#8A8B9A] tracking-wider block font-extrabold mb-2.5">INTELLIGENCE LOG matrix</span>
+                <span className="text-[10px] font-mono uppercase text-[#8A8B9A] tracking-wider block font-extrabold mb-2.5">INTELLIGENCE LOG MATRIX</span>
                 <table className="w-full text-left text-xs font-mono">
                   <thead>
                     <tr className="border-b border-[#1E1F2A] text-[#8A8B9A]">
@@ -515,7 +545,6 @@ export default function DashboardPage() {
                 </table>
               </div>
 
-              {/* Frame thumbnail strip placeholder */}
               <div className="py-4 border-t border-[#1E1F2A]">
                 <span className="text-[10px] font-mono uppercase text-[#8A8B9A] tracking-wider block font-extrabold mb-2">DETECTION FRAMES</span>
                 <div className="grid grid-cols-4 gap-2 text-center text-[10px] font-mono text-[#8A8B9A]">
@@ -531,7 +560,6 @@ export default function DashboardPage() {
               </div>
             </div>
 
-            {/* Footer buttons */}
             <div className="pt-4 border-t border-[#1E1F2A] flex items-center justify-between">
               <span className="text-[10px] font-mono text-[#00C853] font-bold">✓ Evidence Integrity: ALL HASHES VERIFIED</span>
               <div className="flex space-x-3">
@@ -544,7 +572,7 @@ export default function DashboardPage() {
                 <button
                   onClick={triggerMockPdfDownload}
                   disabled={isGeneratingPdf}
-                  className="px-5 py-2 bg-[#FF6B35] hover:bg-[#E85A24] text-[#0B0C10] font-bold text-xs uppercase tracking-wider rounded-[8px] transition-colors flex items-center space-x-2 shadow"
+                  className="px-5 py-2 bg-[#FF6B35] hover:bg-[#E85A24] text-[#0B0C10] font-bold text-xs uppercase tracking-wider rounded-[8px] transition-colors flex items-center space-x-2"
                 >
                   <Download className="w-4 h-4 text-[#0B0C10]" />
                   <span>{isGeneratingPdf ? "Generating..." : "DOWNLOAD PDF"}</span>
@@ -555,17 +583,17 @@ export default function DashboardPage() {
         </div>
       )}
 
-      {/* Floating notifications / Toasts render at top-right */}
+      {/* ── TOASTS ─────────────────────────────────────────────────────────── */}
       <div className="fixed top-6 right-6 space-y-2 z-[999] pointer-events-none max-w-sm w-full">
         {toasts.map((toast) => (
-          <div 
+          <div
             key={toast.id}
-            className={`p-3 border-l-4 rounded-[6px] shadow-2xl flex items-center justify-between text-xs font-mono text-white pointer-events-auto bg-[#15161D] border-[#1E1F2A] animate-slide-left ${
+            className={`p-3 border-l-4 rounded-[6px] shadow-2xl flex items-center justify-between text-xs font-mono text-white pointer-events-auto bg-[#15161D] border-[#1E1F2A] ${
               toast.type === 'victim' ? 'border-l-[#00C853]' : 'border-l-[#FF1744]'
             }`}
           >
             <span>{toast.text}</span>
-            <button 
+            <button
               onClick={() => setToasts(prev => prev.filter(t => t.id !== toast.id))}
               className="text-[#8A8B9A] hover:text-white font-bold ml-4"
             >
@@ -574,6 +602,19 @@ export default function DashboardPage() {
           </div>
         ))}
       </div>
+
+      {/* ── AMBER SHIELD OVERLAY ─────────────────────────────────────────── */}
+      {isAmberShieldActive && (
+        <AmberShield
+          countdown={amberShieldCountdown}
+          setCountdown={setAmberShieldCountdown}
+          familyAlertSent={familyAlertSent}
+          setFamilyAlertSent={setFamilyAlertSent}
+          onClose={() => setIsAmberShieldActive(false)}
+          officers={amberShieldData?.officers || []}
+          speakText={speakText}
+        />
+      )}
     </div>
   );
 }

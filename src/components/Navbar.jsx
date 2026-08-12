@@ -22,8 +22,8 @@ export default function Navbar({ onOpenDebrief }) {
   const [hasUnread, setHasUnread] = useState(true);
 
   const navTabs = [
-    { name: 'KRYPT CCTV', path: '/krypt' },
     { name: 'Dashboard', path: '/dashboard' },
+    { name: 'CCTV Multi-Cam', path: '/krypt' },
     { name: 'Evidence', path: '/evidence' },
     { name: 'Analysis', path: '/analysis' },
     { name: 'Reports', path: '/reports' },

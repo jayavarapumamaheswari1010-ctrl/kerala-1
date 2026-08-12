@@ -8,7 +8,8 @@ import {
   Clock, 
   Archive, 
   HelpCircle, 
-  Shield 
+  Shield,
+  Camera
 } from 'lucide-react';
 
 export default function Sidebar({ onNewInvestigation }) {
@@ -17,6 +18,7 @@ export default function Sidebar({ onNewInvestigation }) {
 
   const menuItems = [
     { name: 'Case Dashboard', path: '/dashboard', icon: LayoutDashboard },
+    { name: 'CCTV Multi-Cam Feeds', path: '/krypt', icon: Camera },
     { name: 'Evidence Analysis', path: '/evidence', icon: Search },
     { name: 'Knowledge Graph', path: '/analysis', icon: Network },
     { name: 'Investigation Timeline', path: '/reports', icon: Clock },
