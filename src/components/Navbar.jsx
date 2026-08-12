@@ -47,7 +47,7 @@ export default function Navbar({ onOpenDebrief }) {
           </div>
           <div className="flex flex-col">
             <span className="text-white font-extrabold text-[18px] tracking-wider leading-none">
-              SENTINEL
+              FORENSIC AI
             </span>
             <span className="text-[#8A8B9A] text-[9px] uppercase tracking-widest font-mono mt-0.5">
               Cyberdome KP-2026

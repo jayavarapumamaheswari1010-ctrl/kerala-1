@@ -1,4 +1,4 @@
-// Audio & Speech Synthesis Engine for Kerala Police Cyberdome SENTINEL
+// Audio & Speech Synthesis Engine for Kerala Police Cyberdome FORENSIC AI
 
 // Play cyber police radio dispatch chime
 export const playRadioChime = () => {

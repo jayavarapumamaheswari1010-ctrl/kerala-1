@@ -27,11 +27,11 @@ export default function LoginPage() {
         {/* Centered Brand Content */}
         <div className="my-auto flex flex-col items-center text-center max-w-lg mx-auto">
           <div className="w-20 h-20 rounded-full border-2 border-[#FF6B35] flex items-center justify-center mb-6 overflow-hidden bg-[#15161D]">
-            <img src="/sentinel_logo.png" alt="SENTINEL Logo" className="w-full h-full object-cover animate-eye-blink" />
+            <img src="/sentinel_logo.png" alt="FORENSIC AI Logo" className="w-full h-full object-cover animate-eye-blink" />
           </div>
 
           <h1 className="text-white font-extrabold text-[36px] tracking-tight mb-1 font-sans">
-            SENTINEL
+            FORENSIC AI
           </h1>
           <p className="text-[#8A8B9A] text-[14px] mb-8 font-sans">
             Digital Evidence Intelligence Platform • Kerala Police Cyberdome

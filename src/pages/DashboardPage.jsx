@@ -188,9 +188,9 @@ export default function DashboardPage() {
       <header className="h-[64px] border-b border-[#1E1F2A] bg-[#15161D] px-6 flex items-center justify-between z-40 select-none">
         <div className="flex items-center space-x-3">
           <div className="w-8 h-8 rounded-[8px] bg-[#1E1F2A] border border-[#FF6B35] flex items-center justify-center overflow-hidden">
-            <img src="/sentinel_logo.png" alt="SENTINEL Logo" className="w-full h-full object-cover animate-eye-blink" />
+            <img src="/sentinel_logo.png" alt="FORENSIC AI Logo" className="w-full h-full object-cover animate-eye-blink" />
           </div>
-          <span className="text-white font-extrabold text-[18px] tracking-tight font-sans">SENTINEL</span>
+          <span className="text-white font-extrabold text-[18px] tracking-tight font-sans">FORENSIC AI</span>
         </div>
 
         {/* Navigation Tabs */}
